@@ -104,9 +104,9 @@ def test_inner_join(db):
     db.execute("INSERT INTO orders (id, user_id, amount) VALUES (3, 2, 29.99)")
     cols, rows = db.execute("SELECT * FROM users u JOIN orders o ON u.id = o.user_id")
     assert len(rows) == 3
-    # All results should have both user and order fields
+    # Every joined row must contain both user fields (name) and order fields (amount)
     for row in rows:
-        assert 'name' in row or 'amount' in row
+        assert 'name' in row and 'amount' in row, f"Expected both 'name' and 'amount' in {row}"
 
 
 def test_left_join(db):

@@ -52,21 +52,26 @@ class Schema:
 class HashIndex:
     def __init__(self):
         self._data: Dict[Any, List[int]] = {}
+        self._id_sets: Dict[Any, set] = {}
 
     def insert(self, key: Any, row_id: int) -> None:
         if key not in self._data:
             self._data[key] = []
-        if row_id not in self._data[key]:
+            self._id_sets[key] = set()
+        if row_id not in self._id_sets[key]:
             self._data[key].append(row_id)
+            self._id_sets[key].add(row_id)
 
     def delete(self, key: Any, row_id: int) -> None:
         if key in self._data:
+            self._id_sets[key].discard(row_id)
             try:
                 self._data[key].remove(row_id)
             except ValueError:
                 pass
             if not self._data[key]:
                 del self._data[key]
+                del self._id_sets[key]
 
     def lookup(self, key: Any) -> List[int]:
         return list(self._data.get(key, []))

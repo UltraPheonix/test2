@@ -55,14 +55,16 @@ class Executor:
         ctx = {}
         rows = list(self._execute_node(plan, ctx))
         if rows:
-            cols = [k for k in rows[0].keys() if not k.startswith('__') and '.' not in k]
+            cols = [k for k in rows[0].keys() if self._is_output_col(k)]
         else:
             cols = []
-        clean_rows = []
-        for row in rows:
-            clean = {k: v for k, v in row.items() if not k.startswith('__') and '.' not in k}
-            clean_rows.append(clean)
+        clean_rows = [{k: v for k, v in row.items() if self._is_output_col(k)} for row in rows]
         return cols, clean_rows
+
+    @staticmethod
+    def _is_output_col(key: str) -> bool:
+        """True for user-visible column keys (no internal prefix, no qualified dot notation)."""
+        return not key.startswith('__') and '.' not in key
 
     def _execute_node(self, node, ctx) -> Generator[Row, None, None]:
         if isinstance(node, SeqScanNode):
@@ -142,11 +144,10 @@ class Executor:
                         prefix = col_expr.table + '.'
                         for k, v in row.items():
                             if k.startswith(prefix) and not k.startswith('__'):
-                                bare = k[len(prefix):]
-                                out[bare] = v
+                                out[k[len(prefix):]] = v
                     else:
                         for k, v in row.items():
-                            if not k.startswith('__') and '.' not in k:
+                            if self._is_output_col(k):
                                 out[k] = v
                 elif isinstance(col_expr, Identifier):
                     if col_expr.table:
